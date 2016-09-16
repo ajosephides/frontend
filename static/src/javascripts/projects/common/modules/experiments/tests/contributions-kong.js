@@ -50,42 +50,35 @@ define([
             return commercialFeatures.canAskForAContribution && worksWellWithPageTemplate && !obWidgetIsShown();
         };
 
-        var controlAttributes = []
-        controlAttributes.push('Since you\'re here ...');
-        controlAttributes.push('... we have a small favour to ask. More people are reading the Guardian than ever. But far fewer are paying for it. And advertising revenues are falling\
+        var messages = [
+            {
+                title: 'Since you\'re here ...',
+                p1: '... we have a small favour to ask. More people are reading the Guardian than ever. But far fewer are paying for it. And advertising revenues are falling\
                         fast. So you can see why we need to ask for your help. The Guardian\'s independent, investigative journalism takes a lot of time, money and hard work to produce. But we do it because we\
-                        believe our perspective matters - because it might well be your perspective, too.');
-        controlAttributes.push('If everyone who reads our reporting, who likes it, helps to pay for it, our future would be much more secure. You can\
-                        give money to the Guardian in less than a minute')
-        controlAttributes.push('https://contribute.theguardian.com?INTCMP=co_uk_kong_control');
-
-
-        var kong0Attributes = []
-        kong0Attributes .push('MESSAGE 1');
-        kong0Attributes .push('... we have a small favour to ask. More people are reading the Guardian than ever. But far fewer are paying for it. And advertising revenues are falling\
+                        believe our perspective matters - because it might well be your perspective, too.',
+                p2: '... we have a small favour to ask. More people are reading the Guardian than ever. But far fewer are paying for it. And advertising revenues are falling\
                         fast. So you can see why we need to ask for your help. The Guardian\'s independent, investigative journalism takes a lot of time, money and hard work to produce. But we do it because we\
-                        believe our perspective matters - because it might well be your perspective, too.');
-        kong0Attributes .push('If everyone who reads our reporting, who likes it, helps to pay for it, our future would be much more secure. You can\
-                        give money to the Guardian in less than a minute')
-
-        var kong1Attributes = []
-        kong1Attributes .push('MESSAGE 2');
-        kong1Attributes .push('... we have a small favour to ask. More people are reading the Guardian than ever. But far fewer are paying for it. And advertising revenues are falling\
+                        believe our perspective matters - because it might well be your perspective, too.'
+            },
+            {
+                title: 'Since you\'re here ...',
+                p1: '... we have a small favour to ask. More people are reading the Guardian than ever. But far fewer are paying for it. And advertising revenues are falling\
                         fast. So you can see why we need to ask for your help. The Guardian\'s independent, investigative journalism takes a lot of time, money and hard work to produce. But we do it because we\
-                        believe our perspective matters - because it might well be your perspective, too.');
-        kong1Attributes .push('If everyone who reads our reporting, who likes it, helps to pay for it, our future would be much more secure. You can\
-                        give money to the Guardian in less than a minute')
-
-
-        var kong2Attributes = []
-        kong2Attributes .push('MESSAGE 3');
-        kong2Attributes .push('... we have a small favour to ask. More people are reading the Guardian than ever. But far fewer are paying for it. And advertising revenues are falling\
+                        believe our perspective matters - because it might well be your perspective, too.',
+                p2: '... we have a small favour to ask. More people are reading the Guardian than ever. But far fewer are paying for it. And advertising revenues are falling\
                         fast. So you can see why we need to ask for your help. The Guardian\'s independent, investigative journalism takes a lot of time, money and hard work to produce. But we do it because we\
-                        believe our perspective matters - because it might well be your perspective, too.');
-        kong2Attributes .push('If everyone who reads our reporting, who likes it, helps to pay for it, our future would be much more secure. You can\
-                        give money to the Guardian in less than a minute');
-
-        var allKongAttributes = [kong0Attributes, kong1Attributes, kong2Attributes];
+                        believe our perspective matters - because it might well be your perspective, too.'
+            },
+            {
+                title: 'Since you\'re here ...',
+                p1: '... we have a small favour to ask. More people are reading the Guardian than ever. But far fewer are paying for it. And advertising revenues are falling\
+                        fast. So you can see why we need to ask for your help. The Guardian\'s independent, investigative journalism takes a lot of time, money and hard work to produce. But we do it because we\
+                        believe our perspective matters - because it might well be your perspective, too.',
+                p2: '... we have a small favour to ask. More people are reading the Guardian than ever. But far fewer are paying for it. And advertising revenues are falling\
+                        fast. So you can see why we need to ask for your help. The Guardian\'s independent, investigative journalism takes a lot of time, money and hard work to produce. But we do it because we\
+                        believe our perspective matters - because it might well be your perspective, too.'
+            }
+        ];
 
         function obWidgetIsShown() {
             var $outbrain = $('.js-outbrain-container');
@@ -111,12 +104,12 @@ define([
             });
         };
 
-        function getComponent(attributes, kongVariant) {
+        function getComponent(message, kongVariant) {
             return $.create(template(contributionsEpic, {
                 position: 'bottom',
-                title: attributes[0],
-                p1: attributes[1],
-                p2: attributes[2],
+                title: message.title,
+                p1: message.p1,
+                p2: message.p2,
                 linkUrl : 'https://contribute.theguardian.com?INTCMP=co_uk_kong_' + kongVariant,
                 kongVariant: kongVariant
             }));
@@ -135,7 +128,7 @@ define([
             {
                 id: 'control',
                 test: function () {
-                    var component = getComponent(controlAttributes, 'control');
+                    var component = getComponent(messages[0], 'control');
                     bottomWriter(component);
                 },
                 success: completer
@@ -148,13 +141,16 @@ define([
                     var messageDuration = 0; //21600 for 6 hours
                     var kongMessageIterationCount = getValue('gu.kongMessageIterationCount') || 0;
                     var kongTimeStamp = getValue('gu.kongTimeStamp') || 0 ;
-
-                    if (currentTime - kongTimeStamp > messageDuration) {
-                        setValue('gu.kongTimeStamp', currentTime);
-                        setValue('gu.kongMessageIterationCount', kongMessageIterationCount + 1);
-                        kongMessageIterationCount++;
+                    var elapsedSoakTime = currentTime - kongTimeStamp;
+                    var proposedAdvance = elapsedSoakTime > messageDuration;
+                    var kongMessageIterationForDisplay = kongMessageIterationCount + (proposedAdvance)?1:0;
+                    bottomWriter(getComponent(messages[kongMessageIterationForDisplay%3], kongMessageIterationForDisplay));
+                    if (proposedAdvance) {
+                        $('.contributions__epic').setVisibilityViewer(function () {
+                            setValue('gu.kongTimeStamp', currentTime);
+                            setValue('gu.kongMessageIterationCount', kongMessageIterationForDisplay);
+                     });
                     }
-                    bottomWriter(getComponent(allKongAttributes[kongMessageIterationCount%3], kongMessageIterationCount));
                 },
                 success: completer
             }
