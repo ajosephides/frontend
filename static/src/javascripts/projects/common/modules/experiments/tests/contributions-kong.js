@@ -6,12 +6,13 @@ define([
     'common/views/svg',
     'common/utils/fastdom-promise',
     'common/utils/mediator',
-    'text!common/views/contributions-epic.html',
+    'text!common/views/contributions-kong.html',
     'common/utils/robust',
     'inlineSvg!svgs/icon/arrow-right',
     'common/utils/config',
     'common/modules/commercial/commercial-features',
-    'common/utils/cookies'
+    'common/utils/cookies',
+    'common/utils/element-inview'
 
 ], function (bean,
              qwery,
@@ -20,14 +21,16 @@ define([
              svg,
              fastdom,
              mediator,
-             contributionsEpic,
+             contributionsKong,
              robust,
              arrowRight,
              config,
              commercialFeatures,
-             cookies
-
+             cookies,
+             ElementInview
 ) {
+
+
 
 
     return function () {
@@ -52,7 +55,7 @@ define([
 
         var messages = [
             {
-                title: 'Since you\'re here ...',
+                title: 'M1',
                 p1: '... we have a small favour to ask. More people are reading the Guardian than ever. But far fewer are paying for it. And advertising revenues are falling\
                         fast. So you can see why we need to ask for your help. The Guardian\'s independent, investigative journalism takes a lot of time, money and hard work to produce. But we do it because we\
                         believe our perspective matters - because it might well be your perspective, too.',
@@ -61,7 +64,7 @@ define([
                         believe our perspective matters - because it might well be your perspective, too.'
             },
             {
-                title: 'Since you\'re here ...',
+                title: 'M2',
                 p1: '... we have a small favour to ask. More people are reading the Guardian than ever. But far fewer are paying for it. And advertising revenues are falling\
                         fast. So you can see why we need to ask for your help. The Guardian\'s independent, investigative journalism takes a lot of time, money and hard work to produce. But we do it because we\
                         believe our perspective matters - because it might well be your perspective, too.',
@@ -70,7 +73,7 @@ define([
                         believe our perspective matters - because it might well be your perspective, too.'
             },
             {
-                title: 'Since you\'re here ...',
+                title: 'M3',
                 p1: '... we have a small favour to ask. More people are reading the Guardian than ever. But far fewer are paying for it. And advertising revenues are falling\
                         fast. So you can see why we need to ask for your help. The Guardian\'s independent, investigative journalism takes a lot of time, money and hard work to produce. But we do it because we\
                         believe our perspective matters - because it might well be your perspective, too.',
@@ -85,15 +88,15 @@ define([
             return $outbrain && $outbrain.length > 0;
         }
 
-        var bottomWriter = function (component) {
-
+        var writer = function (component) {
             return fastdom.write(function () {
                 var a = $('.submeta');
                 component.insertBefore(a);
                 mediator.emit('contributions-embed:insert', component);
             });
-
         };
+
+
 
 
         var completer = function (complete) {
@@ -105,7 +108,7 @@ define([
         };
 
         function getComponent(message, kongVariant) {
-            return $.create(template(contributionsEpic, {
+            return $.create(template(contributionsKong, {
                 position: 'bottom',
                 title: message.title,
                 p1: message.p1,
@@ -123,13 +126,27 @@ define([
             cookies.add(name, value, 14);
         }
 
+        function addInviewLIstener(proposedAdvance, currentTime, kongMessageIterationForDisplay) {
+            mediator.on('contributions-embed:insert', function () {
+                if (proposedAdvance) {
+                    $('.contributions__contribute--epic').each(function (el) {
+                        var elementInview = ElementInview(el, window, {});
+                        elementInview.on('firstview', function () {
+                            setValue('gu.kongTimeStamp', currentTime);
+                            setValue('gu.kongMessageIterationCount', kongMessageIterationForDisplay);
+                        });
+                    });
+                }
+            });
+        }
+
         this.variants = [
 
             {
                 id: 'control',
                 test: function () {
                     var component = getComponent(messages[0], 'control');
-                    bottomWriter(component);
+                    writer(component);
                 },
                 success: completer
             },
@@ -143,14 +160,9 @@ define([
                     var kongTimeStamp = getValue('gu.kongTimeStamp') || 0 ;
                     var elapsedSoakTime = currentTime - kongTimeStamp;
                     var proposedAdvance = elapsedSoakTime > messageDuration;
-                    var kongMessageIterationForDisplay = kongMessageIterationCount + (proposedAdvance)?1:0;
-                    bottomWriter(getComponent(messages[kongMessageIterationForDisplay%3], kongMessageIterationForDisplay));
-                    if (proposedAdvance) {
-                        $('.contributions__epic').setVisibilityViewer(function () {
-                            setValue('gu.kongTimeStamp', currentTime);
-                            setValue('gu.kongMessageIterationCount', kongMessageIterationForDisplay);
-                     });
-                    }
+                    var kongMessageIterationForDisplay =  proposedAdvance ? kongMessageIterationCount + 1: kongMessageIterationCount;
+                    writer(getComponent(messages[kongMessageIterationForDisplay%3], kongMessageIterationForDisplay));
+                    addInviewLIstener(proposedAdvance, currentTime, kongMessageIterationForDisplay);
                 },
                 success: completer
             }
