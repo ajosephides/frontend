@@ -29,6 +29,9 @@ define([
             //     json: fetchJson
             // };
 
+            // Show the sticky banner only if we are in the AB test and other banners are not visible
+            opts.featureStickyBanner = ab.isInVariant('DiscussionPromoteBottomBanner', 'active') && !otherBannersVisible();
+
             frontend(opts)
             .then(function (emitter) {
                 emitter.on('error', function (feature, error) {
@@ -47,6 +50,20 @@ define([
         }, function (error) {
             reportError(error, { feature: 'discussion' });
         });
+    }
+
+    function otherBannersVisible () {
+        var siteMessage = document.getElementsByClassName('js-site-message');
+        if (siteMessage.length && !siteMessage[0].classList.contains('is-hidden')) {
+            // Contribution banner is visible
+            return true;
+        }
+        var breakingNews = document.getElementsByClassName('js-breaking-news-placeholder');
+        if (breakingNews.length && !breakingNews[0].classList.contains('breaking-news--hidden')) {
+            // Breaking news alert is visible
+            return true;
+        }
+        return false;
     }
 
     return {
